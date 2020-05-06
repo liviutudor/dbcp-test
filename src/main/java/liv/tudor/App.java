@@ -3,12 +3,61 @@
  */
 package liv.tudor;
 
-public class App {
-    public String getGreeting() {
-        return "Hello world.";
-    }
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
-    public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+public class App {
+
+  private DatabaseConnPool databaseConnPool = new DatabaseConnPool();
+  private Timer timer = new Timer("liv_testing", true);
+
+  public String getGreeting() {
+    return "Hello world.";
+  }
+
+  public static void main(String[] args) {
+    try {
+      App app = new App();
+      app.go();
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.exit(1);
     }
+  }
+
+  void go() throws Exception {
+    databaseConnPool.setHost("localhost");
+    databaseConnPool.setUsername("dbcp_test");
+    databaseConnPool.setPassword("dbcp_test");
+    databaseConnPool.setDatabase("dbcp_test");
+    databaseConnPool.setDriverClassName("com.mysql.cj.jdbc.Driver");
+    databaseConnPool.setMaxPoolSize(10);
+    databaseConnPool.setJmxName("liv.tudor.dbcpTest:type=liv.tudor.databasePool");
+    databaseConnPool.setMaxWaitMillis(-1);
+    databaseConnPool.setTimeBetweenEvictionRunsMillis(30);
+    databaseConnPool.setRemoveAbandonedTimeout(60);
+
+    System.out.println("Starting");
+    timer.scheduleAtFixedRate(new TimerTask() {
+      @Override
+      public void run() {
+        try (Connection con = databaseConnPool.getConnection()){
+          PreparedStatement pstmt = con.prepareStatement("SELECT NOW();");
+          pstmt.execute();
+          ResultSet rs = pstmt.getResultSet();
+          rs.next();
+          System.out.println( "Time" + rs.getDate(1));
+          rs.close();
+          pstmt.close();
+        } catch( Exception e ) {
+          e.printStackTrace();
+        }
+      }
+    }, 0, 30_000);
+    TimeUnit.MINUTES.sleep(10);
+  }
 }
