@@ -8,12 +8,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class App {
 
+  private static final int N_THREADS = 4;
+
   private DatabaseConnPool databaseConnPool = new DatabaseConnPool();
   private Timer timer = new Timer("liv_testing", true);
+  private ExecutorService service = Executors.newFixedThreadPool(N_THREADS);
 
   public String getGreeting() {
     return "Hello world.";
@@ -30,31 +35,36 @@ public class App {
   }
 
   void go() throws Exception {
-    databaseConnPool.setHost("localhost");
-    databaseConnPool.setUsername("dbcp_test");
-    databaseConnPool.setPassword("dbcp_test");
-    databaseConnPool.setDatabase("dbcp_test");
-    databaseConnPool.setDriverClassName("com.mysql.cj.jdbc.Driver");
-    databaseConnPool.setMaxPoolSize(10);
-    databaseConnPool.setJmxName("liv.tudor.dbcpTest:type=liv.tudor.databasePool");
-    databaseConnPool.setMaxWaitMillis(-1);
-    databaseConnPool.setTimeBetweenEvictionRunsMillis(30);
-    databaseConnPool.setRemoveAbandonedTimeout(60);
+    ConnectionSettings settings = new PostgresConnectionSettings();
+    settings.setHost("localhost");
+    settings.setUsername("dbcp_test");
+    settings.setPassword("dbcp_test");
+    settings.setDatabase("dbcp_test");
+    settings.setMaxPoolSize(10);
+    settings.setMaxWaitMillis(-1);
+    settings.setTimeBetweenEvictionRunsMillis(30);
+    settings.setRemoveAbandonedTimeout(60);
+
+    databaseConnPool.setConnectionSettings(settings);
 
     System.out.println("Starting");
     timer.scheduleAtFixedRate(new TimerTask() {
       @Override
       public void run() {
-        try (Connection con = databaseConnPool.getConnection()){
-          PreparedStatement pstmt = con.prepareStatement("SELECT NOW();");
-          pstmt.execute();
-          ResultSet rs = pstmt.getResultSet();
-          rs.next();
-          System.out.println( "Time" + rs.getDate(1));
-          rs.close();
-          pstmt.close();
-        } catch( Exception e ) {
-          e.printStackTrace();
+        for (int i = 0; i < N_THREADS; i++) {
+          service.submit(() -> {
+            try (Connection con = databaseConnPool.getConnection()) {
+              PreparedStatement pstmt = con.prepareStatement("SELECT NOW();");
+              pstmt.execute();
+              ResultSet rs = pstmt.getResultSet();
+              rs.next();
+              System.out.println("Time" + rs.getDate(1));
+              rs.close();
+              pstmt.close();
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
+          });
         }
       }
     }, 0, 30_000);

@@ -12,6 +12,7 @@ dependencies {
     implementation 'com.google.guava:guava:28.2-jre'
     implementation "org.apache.commons:commons-dbcp2:2.7.0"
     implementation 'mysql:mysql-connector-java:8.0.20'
+    implementation 'org.postgresql:postgresql:42.2.12'
 
     testImplementation 'org.codehaus.groovy:groovy-all:2.5.10'
     testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
