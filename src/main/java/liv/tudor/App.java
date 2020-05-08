@@ -59,6 +59,7 @@ public class App {
               ResultSet rs = pstmt.getResultSet();
               rs.next();
               System.out.println("Time" + rs.getDate(1));
+              TimeUnit.SECONDS.sleep(10);
               rs.close();
               pstmt.close();
             } catch (Exception e) {

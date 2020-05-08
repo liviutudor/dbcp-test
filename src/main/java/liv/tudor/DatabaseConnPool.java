@@ -31,6 +31,7 @@ public class DatabaseConnPool {
       basicDS.setDefaultAutoCommit(false);
       basicDS.setRemoveAbandonedOnMaintenance(true);
       basicDS.setConnectionProperties("serverTimezone=UTC");
+      basicDS.setTestOnBorrow(true);
       // Parameters for connection pooling -- config
       basicDS.setMinIdle(connectionSettings.getMinIdle());
       basicDS.setMaxTotal(connectionSettings.getMaxPoolSize());
